@@ -480,6 +480,18 @@ header .chip{padding:3px 7px;font-size:14px}
 @media(max-width:700px) and (max-height:700px){:root{--stage-bomb:clamp(200px,calc(var(--appH,100dvh)*.36),300px)}}
 /* no sticky "hover" on touch screens */
 @media(hover:none){button:not(:disabled):hover{transform:none;filter:none}button:not(:disabled):active{transform:translateY(3px)}}
+
+/* ===== volume menu ===== */
+#volMenu{position:fixed;z-index:60;width:min(330px,calc(100vw - 20px));overflow-y:auto;background:var(--card);border-radius:22px;padding:12px 16px 14px;box-shadow:0 0 0 3px var(--line),0 16px 34px -10px rgba(90,70,170,.6);animation:fade .2s}
+#volMenu[hidden]{display:none}
+.vmHead{display:flex;align-items:center;justify-content:space-between;font-size:18px;margin-bottom:4px}
+#volMenu button{padding:5px 14px;font-size:14px}
+.vmRow{display:grid;grid-template-columns:1fr auto;align-items:center;margin:6px 0;font-size:15px;font-weight:800}
+.vmRow output{color:var(--dim);font-size:13px}
+.vmRow input{grid-column:1/3;width:100%;height:28px;margin:0;padding:0;border:0;background:transparent;accent-color:var(--accent);cursor:pointer}
+.vmRow.master{padding-bottom:8px;margin-bottom:10px;border-bottom:2px dashed var(--line)}
+#volMenu.muted .vmRow{opacity:.4}
+#vmReset{display:block;margin:10px auto 0;background:var(--soft);box-shadow:0 3px 0 var(--soft-sh)}
 </style>
 </head>
 <body>
@@ -490,7 +502,7 @@ header .chip{padding:3px 7px;font-size:14px}
   <div class="chip" id="modsChip"><span data-ic="puzzle"></span><svg id="modRing" viewBox="0 0 24 24"><circle class="t" cx="12" cy="12" r="8"/><circle class="f" id="ringFill" cx="12" cy="12" r="8"/></svg><span id="mods">0/6</span></div>
   <div class="chip beat" id="beat"></div>
   <button id="pauseBtn" class="ibtn" hidden title="Pause (P)" aria-label="Pause" data-ic="pause"></button>
-  <button id="muteBtn" class="ibtn" aria-label="Sound"></button>
+  <button id="muteBtn" class="ibtn" aria-label="Volume" aria-haspopup="true"></button>
   <button id="themeBtn" class="ibtn" aria-label="Theme"></button>
   <button id="keysBtn" class="ibtn" title="Shortcuts (?)" aria-label="Keyboard shortcuts" data-ic="keyboard"></button>
   <button id="openStart" class="chipbtn" aria-label="Start run"><span data-ic="play"></span><span class="lbl"> Start run</span></button>
@@ -1696,8 +1708,12 @@ function strike(text) {
 }
 function apply(a, secs) {
   if (!a || !G.active) return;
-  const m = Object.values(MOD).find(x => x.types.includes(a.type));
-  if (!m) return;
+  if (Array.isArray(a)) return a.slice(0, 3).forEach(x => apply(x, secs));
+  const t = String(a.type || a.action || '').toLowerCase().trim().replace(/[\s-]+/g, '_').replace('press_color', 'press_colour');
+  if (a.colour === undefined && a.color !== undefined) a.colour = a.color;      // the AI sometimes spells it "color"
+  const m = Object.values(MOD).find(x => x.types.includes(t));
+  if (!m) return note('Nothing happened: the defuser tried something this bomb cannot do.');   // never drop an action silently
+  a.type = t;
   const b = G.bomb;
   if (!b.m[m.id]) return note('There is no such panel on this bomb.');
   if (b.solved[m.id]) return note(`The ${m.name} is already defused.`);
@@ -1712,7 +1728,7 @@ Rules for you:
 - Everything you say must match the SECRET BOMB STATE. Never invent or change facts. If asked about something that isn't on the bomb, say you don't see it.
 - Only act when the expert clearly tells you to. If the instruction is ambiguous (which wire? tap or hold?), ask. Never act on your own and never suggest what to do.
 - Never do calculations, comparisons or lookups that the manual would normally do. Only report what you see.
-- Lines starting with [game event] are the game telling you what just happened. React naturally.
+- Lines starting with [game event] are the game telling you what just happened. React naturally.\n- Never say you cut, pressed, entered, flagged or defused something unless you put the matching action in that same reply. The game reports the result itself, so do not announce success or failure on your own.
 - If a [game event] tells you to describe something without being asked, do it on your own, in character: loose, quick and a little panicked, 1-3 short sentences. Never take an action in that reply.
 - Add a "reveal" list to every reply. It lists only the facts whose EXACT values you just said out loud in that reply (leave it empty if none, and never list something you only hinted at).`;
 function buildPrompt() {
@@ -2239,38 +2255,47 @@ function faceSVG(kind) {
 const heartsSVG = (full, lost) => Array.from({ length: full + lost }, (_, i) => `<svg viewBox="0 0 24 24" class="${i === full && lost ? 'pulse' : ''}"><path d="M12 21s-8.5-5.4-8.5-11.2A4.7 4.7 0 0 1 12 7a4.7 4.7 0 0 1 8.5 2.8C20.5 15.6 12 21 12 21z" fill="${i < full ? '#ff6b86' : 'var(--soft-sh)'}" stroke="${i < full ? '#d6456a' : 'var(--dim2)'}" stroke-width="2" stroke-linejoin="round"/></svg>`).join('');
 
 /* ---------- sound effects (all synthesised, nothing to download) ---------- */
+const SFX_GROUPS = [['tick', 'Clock ticking'], ['type', 'Typing'], ['chat', 'Chat messages'], ['click', 'Buttons & wire snips'], ['solve', 'Module solved'], ['strike', 'Strike'], ['end', 'Win & explosion']];
 const SFX = (() => {
-  let ctx = null, muted = localStorage.getItem('mute') === '1', lastKey = 0;
+  let ctx = null, muted = localStorage.getItem('mute') === '1', lastKey = 0, grp = 'click';
+  let vols = {}; try { vols = JSON.parse(localStorage.getItem('sfxVol') || '{}') || {}; } catch {}
+  const get = g => (typeof vols[g] === 'number' ? vols[g] : 1);                 // 0 to 1, default 1 (= the old loudness)
+  const lvl = () => muted ? 0 : get('master') * get(grp);                        // the group a sound belongs to is set just before it plays
   const A = () => { if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); } if (ctx.state === 'suspended') ctx.resume(); return ctx; };
   function tone(freq, dur, type = 'sine', vol = .12, delay = 0, to = null) {
-    if (muted) return; const c = A(); if (!c) return;
+    const lv = lvl(); if (!lv) return; const c = A(); if (!c) return; vol *= lv;
     const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(vol, .0002), t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + .03);
   }
   function noise(dur, vol = .2, delay = 0, freq = 800, kind = 'highpass') {
-    if (muted) return; const c = A(); if (!c) return;
+    const lv = lvl(); if (!lv) return; const c = A(); if (!c) return;
     const n = Math.max(1, Math.floor(c.sampleRate * dur)), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
     const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    s.buffer = buf; f.type = kind; f.frequency.value = freq; g.gain.value = vol;
+    s.buffer = buf; f.type = kind; f.frequency.value = freq; g.gain.value = vol * lv;
     s.connect(f).connect(g).connect(c.destination); s.start(c.currentTime + delay);
   }
-  return {
+  const api = {
     isMuted: () => muted,
     setMuted(m) { muted = m; localStorage.setItem('mute', m ? '1' : '0'); },
-    type() { const n = performance.now(); if (n - lastKey < 40) return; lastKey = n; tone(650 + R(350), .03, 'triangle', .035); },
-    click() { tone(520, .06, 'square', .05); },
-    send() { tone(380, .1, 'sine', .1, 0, 760); },
-    msg() { tone(660, .08, 'sine', .07); tone(880, .1, 'sine', .06, .07); },
-    snip() { noise(.07, .22, 0, 3000); tone(1800, .05, 'square', .05, 0, 900); },
-    good() { [523, 659, 784].forEach((f, i) => tone(f, .16, 'triangle', .1, i * .08)); },
-    bad() { tone(190, .4, 'sawtooth', .13, 0, 80); noise(.25, .1, 0, 400); },
-    tick(fast) { tone(fast ? 1500 : 1100, .035, 'square', .03); },
-    boom() { noise(1.1, .45, 0, 400, 'lowpass'); tone(95, .9, 'sawtooth', .25, 0, 30); },
-    win() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .24, 'triangle', .11, i * .1)); }
+    get,
+    set(g, v) { vols[g] = Math.min(1, Math.max(0, v)); localStorage.setItem('sfxVol', JSON.stringify(vols)); },
+    reset() { vols = {}; localStorage.removeItem('sfxVol'); },
+    preview(g) { ({ tick: () => api.tick(false), type: () => api.type(), chat: () => api.msg(), click: () => api.snip(), solve: () => api.good(), strike: () => api.bad(), end: () => api.win() }[g] || (() => api.msg()))(); },
+    type() { const n = performance.now(); if (n - lastKey < 40) return; lastKey = n; grp = 'type'; tone(650 + R(350), .03, 'triangle', .035); },
+    click() { grp = 'click'; tone(520, .06, 'square', .05); },
+    send() { grp = 'chat'; tone(380, .1, 'sine', .1, 0, 760); },
+    msg() { grp = 'chat'; tone(660, .08, 'sine', .07); tone(880, .1, 'sine', .06, .07); },
+    snip() { grp = 'click'; noise(.07, .22, 0, 3000); tone(1800, .05, 'square', .05, 0, 900); },
+    good() { grp = 'solve'; [523, 659, 784].forEach((f, i) => tone(f, .16, 'triangle', .1, i * .08)); },
+    bad() { grp = 'strike'; tone(190, .4, 'sawtooth', .13, 0, 80); noise(.25, .1, 0, 400); },
+    tick(fast) { grp = 'tick'; tone(fast ? 1500 : 1100, .035, 'square', .03); },
+    boom() { grp = 'end'; noise(1.1, .45, 0, 400, 'lowpass'); tone(95, .9, 'sawtooth', .25, 0, 30); },
+    win() { grp = 'end'; [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .24, 'triangle', .11, i * .1)); }
   };
+  return api;
 })();
 
 /* ---------- screen effects ---------- */
@@ -2304,9 +2329,39 @@ const FX = {
 
 /* ---------- theme + sound buttons ---------- */
 function setTheme(t) { document.documentElement.dataset.theme = t; localStorage.setItem('theme', t); $('themeBtn').innerHTML = ic(t === 'dark' ? 'sun' : 'moon'); $('themeBtn').title = t === 'dark' ? 'Light mode' : 'Dark mode'; }
-function drawMute() { $('muteBtn').innerHTML = ic(SFX.isMuted() ? 'mute' : 'volume'); $('muteBtn').title = SFX.isMuted() ? 'Sound off (M)' : 'Sound on (M)'; }
 $('themeBtn').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-$('muteBtn').onclick = () => { SFX.setMuted(!SFX.isMuted()); drawMute(); SFX.click(); };
+/* ---------- volume menu (replaces the mute button): one slider per sound ---------- */
+const volMenu = document.createElement('div');
+volMenu.id = 'volMenu'; volMenu.hidden = true;
+volMenu.innerHTML = '<div class="vmHead"><b>Sound</b><button id="vmMute" type="button"></button></div>'
+  + [['master', 'Master volume'], ...SFX_GROUPS].map(([k, l]) => `<label class="vmRow${k === 'master' ? ' master' : ''}"><span>${l}</span><output></output><input type="range" min="0" max="100" step="5" data-g="${k}" aria-label="${l}"></label>`).join('')
+  + '<button id="vmReset" type="button">Reset all</button>';
+document.body.appendChild(volMenu);
+function drawMute() {
+  const off = SFX.isMuted() || SFX.get('master') === 0;
+  $('muteBtn').innerHTML = ic(off ? 'mute' : 'volume'); $('muteBtn').title = 'Volume (M = mute)';
+  $('vmMute').textContent = SFX.isMuted() ? 'Unmute' : 'Mute all';
+  volMenu.classList.toggle('muted', SFX.isMuted());
+  volMenu.querySelectorAll('input').forEach(i => { const v = Math.round(SFX.get(i.dataset.g) * 100); i.value = v; i.parentNode.querySelector('output').textContent = v + '%'; });
+}
+function toggleMute() { SFX.setMuted(!SFX.isMuted()); drawMute(); SFX.click(); }
+function toggleVolMenu(open) {
+  const o = open === undefined ? volMenu.hidden : open;
+  if (o) {
+    const r = $('muteBtn').getBoundingClientRect(), top = r.bottom + 8;
+    volMenu.style.top = top + 'px'; volMenu.style.right = Math.max(10, innerWidth - r.right - 6) + 'px'; volMenu.style.maxHeight = Math.max(180, innerHeight - top - 10) + 'px';
+    drawMute();
+  }
+  volMenu.hidden = !o;
+}
+$('muteBtn').onclick = () => toggleVolMenu();
+$('vmMute').onclick = toggleMute;
+$('vmReset').onclick = () => { SFX.reset(); SFX.setMuted(false); drawMute(); SFX.msg(); };
+volMenu.addEventListener('input', e => { const g = e.target.dataset && e.target.dataset.g; if (!g) return; SFX.set(g, e.target.value / 100); e.target.parentNode.querySelector('output').textContent = e.target.value + '%'; $('muteBtn').innerHTML = ic(SFX.isMuted() || SFX.get('master') === 0 ? 'mute' : 'volume'); });
+volMenu.addEventListener('change', e => { const g = e.target.dataset && e.target.dataset.g; if (g) SFX.preview(g); });   // let go of a slider = hear that sound
+document.addEventListener('pointerdown', e => { if (!volMenu.hidden && !e.target.closest('#volMenu, #muteBtn')) volMenu.hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') volMenu.hidden = true; });
+addEventListener('resize', () => { volMenu.hidden = true; });
 document.addEventListener('pointerdown', () => { SFX.click; }, { once: true });
 document.addEventListener('input', e => { if (e.target.matches && e.target.matches('.gtxt')) SFX.type(); });
 
@@ -2447,7 +2502,7 @@ document.addEventListener('keydown', e => {
   else if (k === '?') { $('keysOv').style.display = 'flex'; }
   else if (k === 'n' || k === 'N') toggleNotes();
   else if (k === 'p' || k === 'P') { if (G && G.active && G.started) setPause(!G.userPaused); }
-  else if (k === 'm' || k === 'M') $('muteBtn').click();
+  else if (k === 'm' || k === 'M') toggleMute();
   else if (k === 't' || k === 'T') $('themeBtn').click();
   else if (k === '[' || k === ']') { showView('manual'); const i = PAGES.indexOf(curCat); setCat(PAGES[(i + (k === ']' ? 1 : -1) + PAGES.length) % PAGES.length]); }
   else if (/^[0-9]$/.test(k)) { const p = PAGES[k === '0' ? 9 : +k - 1]; if (p) { showView('manual'); setCat(p); } }
