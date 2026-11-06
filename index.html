@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Keep Prompting and Nobody Explodes</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <script>document.documentElement.dataset.theme=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")</script>
@@ -360,6 +360,126 @@ header .beat{margin-left:auto}
 #startD.on{background:var(--accent);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.2)}
 #dmMas2{scale:-1 1}#dmMas,#dmMas2{height:80px;width:auto;flex:none;animation:bob 1.8s ease-in-out infinite;filter:drop-shadow(0 4px 4px rgba(40,30,80,.2))}
 @media(max-width:640px){#dmMas,#dmMas2{height:56px}.ex{min-width:0;padding:6px 10px}.ex small{font-size:10px}#dmBar{padding:8px 10px 12px;gap:6px}#mic{width:60px;height:60px}}
+
+/* =====================================================================
+   MOBILE (phones, portrait) — everything here only applies up to 700px wide
+   Layout: [header] [time bar] [STAGE: chat <-> bomb] [manual] [Manual | My notes | Scores]
+   The chat and the bomb picture share the stage and flip. When the defuser tells
+   you something new, the stage flips to the bomb so you can go straight to the manual.
+   ===================================================================== */
+#stageTabs,#nSeg,#zoomHint,#tabs #tabNotes{display:none}
+.tw{overflow-x:auto}
+@media(max-width:700px){
+:root{--stage-bomb:clamp(220px,calc(var(--appH,100dvh)*.38),300px);--stage-chat:clamp(300px,calc(var(--appH,100dvh)*.56),480px)}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+html,body{overscroll-behavior:none}
+button{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+/* the page is pinned to the visible area, so the keyboard can never push things off screen */
+body{position:fixed;left:0;right:0;top:var(--vvTop,0px);height:var(--appH,100dvh);font-size:16px}
+
+/* header: one slim row */
+header{flex-wrap:nowrap;gap:6px;padding:calc(6px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left));border-radius:0 0 20px 20px}
+#sprite,#beat,#keysBtn,#modsChip [data-ic=puzzle]{display:none}
+#timer{font-size:26px;padding:0 10px;border-radius:14px}
+header .chip{padding:3px 9px;font-size:15px;flex:none;white-space:nowrap}
+header>*{flex-shrink:0}
+#hearts svg{width:18px;height:18px}
+#modsChip{margin-right:auto}
+.ibtn{width:36px;height:36px}.ibtn .ic{width:19px;height:19px}
+#pauseBtn,#openStart{order:1}#muteBtn{order:2}#themeBtn{order:3}
+#openStart{width:36px;height:36px;padding:0;border-radius:50%;justify-content:center}
+#openStart .lbl{display:none}
+#bar{margin:6px 12px 0;height:12px}
+
+/* the stage: bomb and chat sit in the same box */
+main{padding:8px 10px}
+#v-manual.on{display:flex;flex-direction:column;gap:8px}
+#rightCol{order:-1;flex:none;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;height:var(--stage-chat);transition:height .4s cubic-bezier(.4,.1,.2,1)}
+#rightCol[data-face=bomb]{height:var(--stage-bomb)}
+#manPane{flex:1;min-height:0}
+body.typing #manPane{display:none}
+body.typing #rightCol{flex:1;height:auto}
+#stageTabs{display:flex;gap:4px;padding:3px;background:var(--soft);border-radius:999px;grid-row:1;grid-column:1}
+#stageTabs button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:4px 10px;font-size:15px;background:transparent;box-shadow:none;color:var(--dim)}
+#stageTabs button.on{background:var(--lav);color:var(--ink);box-shadow:0 3px 0 var(--accent2)}
+#bombCard,#chatPane{grid-row:2;grid-column:1;min-height:0;height:auto;transition:opacity .3s,transform .4s cubic-bezier(.2,.9,.3,1),visibility 0s}
+#rightCol[data-face=bomb] #chatPane,#rightCol[data-face=chat] #bombCard{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(10px) scale(.97);transition:opacity .25s,transform .35s,visibility 0s .35s}
+#rightCol[data-face=bomb] #bombCard,#rightCol[data-face=chat] #chatPane{opacity:1;visibility:visible;transform:none}
+#bombBox{inset:6px}
+#zoomHint{display:block;position:absolute;left:50%;bottom:6px;transform:translateX(-50%);padding:2px 12px;border-radius:999px;background:var(--glass);font-size:12px;font-weight:800;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s}
+#zoomHint.show{opacity:1}
+
+/* chat */
+#chatPane{padding:8px 10px 10px;border-radius:20px}
+#mascot{width:44px;height:48px;order:0}
+.chatHead .chIc,.chatHead .lbl{display:none}
+.chatHead .sp{order:1}
+.chatHead #ttsBtn{order:2;white-space:nowrap}
+#log{gap:6px;overscroll-behavior:contain}
+.msg{max-width:90%;padding:8px 12px;font-size:16px;line-height:1.4}
+#thinking{height:20px;margin-top:4px}
+.row{margin-top:8px;gap:6px}
+.gtxt,.ghost{padding:10px 14px;font-size:16px}
+#micBtn{width:46px;height:46px}
+#send{min-height:46px;padding:8px 16px}
+
+/* manual: chips scroll sideways, text is a bit smaller */
+#manPane.card{padding:8px 6px 6px;border-radius:20px}
+#cats{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:6px;padding:7px 6px 8px;margin:0 0 4px;scrollbar-width:none}
+#cats::-webkit-scrollbar{display:none}
+#cats button{flex:none;white-space:nowrap;min-height:38px;padding:6px 12px;font-size:15px}
+#manBody{font-size:16px;padding:0 6px 14px;overscroll-behavior:contain}
+.cat h2{font-size:21px}
+.cat h3{font-size:16px}
+.cat ul.tree,.cat ul.tree ul{padding-left:16px}
+.cat table{font-size:14px}
+td,th{padding:6px}
+pre.code{font-size:13px;padding:10px 12px}
+.kbdhint{display:none}
+
+/* bottom bar: Manual | My notes | Scores */
+#tabs{gap:6px;padding:6px 10px calc(6px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0}
+#tabs button{min-height:46px;font-size:15px;gap:6px}
+#tabs #tabNotes{display:inline-flex}
+
+/* notes + calculator: a bottom sheet with a Notes | Calculator switch */
+#notesPanel{left:0;right:0;width:auto;border-radius:22px 22px 0 0;visibility:hidden;transition:visibility 0s .35s}
+#notesPanel.open{visibility:visible;transition-delay:0s}
+#notesPanel:not(.open) #notesHead{display:none}
+#notesHead{height:44px;border-radius:22px 22px 0 0}
+#notesPanel.open #notesBody{height:min(calc(var(--appH,100dvh)*.58),400px);padding:0 12px}
+#nSeg{display:flex;flex:none;gap:4px;padding:3px;margin-top:10px;background:var(--soft);border-radius:999px}
+#nSeg button{flex:1;min-height:34px;padding:4px 10px;font-size:15px;background:transparent;box-shadow:none;color:var(--dim)}
+#nSeg button.on{background:var(--lav);color:var(--ink);box-shadow:0 3px 0 var(--accent2)}
+#notesRow{margin:10px 0 12px}
+#notesRow[data-p=notes] #calc{display:none}
+#notesRow[data-p=calc] #notesField{display:none}
+#calc{flex:1;width:100%}
+#calcScreen{height:56px}
+#calcVal{font-size:26px}
+#calcKeys{gap:6px}
+#calcKeys button{font-size:20px;min-height:40px;border-radius:14px}
+#notesBody pre{max-height:12vh}
+
+/* windows that pop up */
+.ov{padding:10px}
+.ov .card{max-height:calc(var(--appH,100dvh) - 20px);overflow-y:auto;padding:14px}
+#startOv .card h1{font-size:23px;line-height:1.2}
+.titleBomb{width:100px;height:100px}
+.bigbtn{font-size:16px;padding:10px 16px}
+#v-scores .card{padding:12px}
+}
+/* small phones: tighter header, smaller bomb so the manual keeps some room */
+@media(max-width:380px){
+header{gap:5px}
+#timer{font-size:22px;padding:0 8px}
+header .chip{padding:3px 7px;font-size:14px}
+#hearts{gap:2px}#hearts svg{width:15px;height:15px}
+.ibtn,#openStart{width:32px;height:32px}.ibtn .ic{width:17px;height:17px}
+}
+@media(max-width:700px) and (max-height:700px){:root{--stage-bomb:clamp(200px,calc(var(--appH,100dvh)*.36),300px)}}
+/* no sticky "hover" on touch screens */
+@media(hover:none){button:not(:disabled):hover{transform:none;filter:none}button:not(:disabled):active{transform:translateY(3px)}}
 </style>
 </head>
 <body>
@@ -367,13 +487,13 @@ header .beat{margin-left:auto}
   <div id="sprite"></div>
   <div id="timer">6:00</div>
   <div class="chip"><span id="hearts"></span></div>
-  <div class="chip"><span data-ic="puzzle"></span><svg id="modRing" viewBox="0 0 24 24"><circle class="t" cx="12" cy="12" r="8"/><circle class="f" id="ringFill" cx="12" cy="12" r="8"/></svg><span id="mods">0/6</span></div>
+  <div class="chip" id="modsChip"><span data-ic="puzzle"></span><svg id="modRing" viewBox="0 0 24 24"><circle class="t" cx="12" cy="12" r="8"/><circle class="f" id="ringFill" cx="12" cy="12" r="8"/></svg><span id="mods">0/6</span></div>
   <div class="chip beat" id="beat"></div>
   <button id="pauseBtn" class="ibtn" hidden title="Pause (P)" aria-label="Pause" data-ic="pause"></button>
   <button id="muteBtn" class="ibtn" aria-label="Sound"></button>
   <button id="themeBtn" class="ibtn" aria-label="Theme"></button>
   <button id="keysBtn" class="ibtn" title="Shortcuts (?)" aria-label="Keyboard shortcuts" data-ic="keyboard"></button>
-  <button id="openStart" class="chipbtn"><span data-ic="play"></span> Start run</button>
+  <button id="openStart" class="chipbtn" aria-label="Start run"><span data-ic="play"></span><span class="lbl"> Start run</span></button>
 </header>
 
 <div id="bar"><div id="fill"></div><div id="mark" hidden title="Time to beat"></div></div>
@@ -403,7 +523,7 @@ header .beat{margin-left:auto}
           <p>The defuser can see the bomb. <b>You can't.</b> Ask questions, then use the rules in this book. Always use the <b>first rule that matches</b>.</p>
           <p>Every bomb has <b>6 modules</b>: <b>2 Easy</b> (left column), <b>2 Medium</b> (middle column), <b>1 Hard</b> (top right) and <b>1 Grief</b> (bottom right). The bomb picture never shows difficulty names, only this manual does. Not every module in the book is on every bomb, and the defuser will tell you what they see.</p>
           <p>You have <b>6:00</b> and <b>3 strikes</b>. The clock freezes while the defuser is thinking. Pick a module above to see its rules, and tap <b>My notes</b> at the bottom to write things down or use the calculator.</p>
-          <p style="color:var(--dim);font-size:16px">Shortcuts: press <kbd>?</kbd> to see them all.</p>
+          <p class="kbdhint" style="color:var(--dim);font-size:16px">Shortcuts: press <kbd>?</kbd> to see them all.</p>
         </section>
         <section class="cat" id="c-wires">
           <h2><span data-ic="wires"></span>Wires<span class="badge easy">Easy</span></h2>
@@ -640,14 +760,18 @@ else:
       </div>
     </div>
 
-    <div id="rightCol">
-      <div class="card" id="bombCard"><div id="bombBox"></div></div>
+    <div id="rightCol" data-face="chat">
+      <div id="stageTabs" role="tablist" aria-label="Bomb or chat">
+        <button id="stBomb" role="tab" type="button" aria-selected="false"><span data-ic="bomb"></span> Bomb</button>
+        <button id="stChat" role="tab" type="button" aria-selected="true" class="on"><span data-ic="chat"></span> Chat</button>
+      </div>
+      <div class="card" id="bombCard"><div id="bombBox"></div><div id="zoomHint"></div></div>
       <div class="card pane" id="chatPane">
-        <div class="chatHead"><span data-ic="chat"></span> Chat with the defuser <span class="sp"></span><div id="mascot" aria-hidden="true"><img id="mascotImg" alt="" draggable="false"></div><button id="ttsBtn" title="The defuser speaks replies aloud"></button></div>
+        <div class="chatHead"><span data-ic="chat" class="chIc"></span><span class="lbl"> Chat with the defuser </span><span class="sp"></span><div id="mascot" aria-hidden="true"><img id="mascotImg" alt="" draggable="false"></div><button id="ttsBtn" title="The defuser speaks replies aloud"></button></div>
         <div id="log"></div>
         <div id="thinking"><span id="thinkWord"></span><small id="thinkCap"></small></div>
         <div class="row">
-          <div class="field"><div id="ghost" class="ghost" aria-hidden="true"></div><textarea id="msg" class="gtxt" rows="1" maxlength="200" placeholder="Tell the defuser what to do..." disabled></textarea></div>
+          <div class="field"><div id="ghost" class="ghost" aria-hidden="true"></div><textarea id="msg" class="gtxt" rows="1" maxlength="200" placeholder="Tell the defuser what to do..." enterkeyhint="send" autocomplete="off" autocapitalize="sentences" disabled></textarea></div>
           <button id="micBtn" title="Tap to speak, then tap again to stop" aria-label="Speak" data-ic="mic" disabled></button>
           <button id="send" disabled>Send</button>
         </div>
@@ -668,7 +792,8 @@ else:
   <div id="notesPanel">
     <button id="notesHead"><span style="display:inline-flex;align-items:center;gap:8px"><span data-ic="notes"></span> My notes</span> <span class="arrow" data-ic="arrowUp"></span></button>
     <div id="notesBody">
-      <div id="notesRow">
+      <div id="nSeg"><button type="button" data-p="notes" class="on">Notes</button><button type="button" data-p="calc">Calculator</button></div>
+      <div id="notesRow" data-p="notes">
         <div class="field" id="notesField"><div id="nghost" class="ghost" aria-hidden="true"></div><textarea id="notes" class="gtxt" placeholder="Write down what the defuser tells you, e.g. serial number, wire colours..."></textarea></div>
         <div id="calc" tabindex="0" aria-label="Calculator">
           <div id="calcScreen"><button id="calcPaste" title="Paste result into notes" aria-label="Paste result into notes">↳</button><div id="calcExpr"></div><div id="calcVal">0</div></div>
@@ -680,6 +805,7 @@ else:
   </div>
   <nav id="tabs">
     <button data-v="manual"><span data-ic="book"></span> Manual</button>
+    <button id="tabNotes" type="button"><span data-ic="notes"></span> My notes</button>
     <button data-v="scores"><span data-ic="trophy"></span> Scores</button>
   </nav>
 </div>
@@ -763,6 +889,8 @@ else:
 
 <script>
 const $ = id => document.getElementById(id);
+const mobile = () => matchMedia('(max-width:700px)').matches;   // phone-sized screen? (the CSS uses the same 700px)
+const mob = { face: 'chat', tok: 0, zoom: null, zoomed: false, zt: 0 };   // state of the phone layout (see the MOBILE section)
 /* ---------- difficulty + module registry ---------- */
 const RUN_SECONDS = 360, MAX_STRIKES = 3;
 const DIFFS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', grief: 'Grief' };
@@ -972,11 +1100,11 @@ const VIEW_IDX = { manual: 0, scores: 1 };
 function showView(v) {
   const prev = view; view = v;
   document.querySelectorAll('.view').forEach(e => { const on = e.id === 'v-' + v; e.classList.remove('fromR', 'fromL'); e.classList.toggle('on', on); if (on && prev !== v) { void e.offsetWidth; e.classList.add(VIEW_IDX[v] > VIEW_IDX[prev] ? 'fromR' : 'fromL'); } });
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  document.querySelectorAll('#tabs button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   if (v === 'manual') {
     $('log').scrollTop = $('log').scrollHeight;
     fitChat(true);
-    if (G && G.active && !G.busy) $('msg').focus();
+    if (G && G.active && !G.busy && !mobile()) $('msg').focus();
   }
 }
 function setCat(c) {
@@ -984,14 +1112,17 @@ function setCat(c) {
   document.querySelectorAll('.cat').forEach(e => e.classList.toggle('on', e.id === 'c-' + c));
   document.querySelectorAll('#cats button').forEach(b => b.classList.toggle('on', b.dataset.c === c));
   $('manBody').scrollTop = 0;
+  const chip = document.querySelector('#cats button.on');
+  if (chip && mobile()) chip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });   // keep the chosen chip in view
 }
 function toggleNotes(open) {
   const p = $('notesPanel');
   const o = open === undefined ? !p.classList.contains('open') : open;
   p.classList.toggle('open', o);
-  if (o) setTimeout(() => $('notes').focus(), 360);
+  $('tabNotes').classList.toggle('on', o);
+  if (o && !mobile()) setTimeout(() => $('notes').focus(), 360);
 }
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showView(b.dataset.v));
+document.querySelectorAll('#tabs button[data-v]').forEach(b => b.onclick = () => showView(b.dataset.v));
 document.querySelectorAll('#cats button').forEach(b => b.onclick = () => setCat(b.dataset.c));
 $('notesHead').onclick = () => toggleNotes();
 
@@ -1482,7 +1613,7 @@ function render() {
   const running = !!(G && G.active && G.started);
   $('openStart').hidden = !!(G && G.active) || starting;
   $('pauseBtn').hidden = !running;
-  const sig = bombSig(); if (sig !== lastSig) { lastSig = sig; renderBomb(); }
+  const sig = bombSig(); if (sig !== lastSig && !mobBombHidden()) { lastSig = sig; renderBomb(); }
   const urg = G && G.active ? Math.max(0, Math.min(1, 1 - pct / 55 + k * .12)) : 0;
   document.documentElement.style.setProperty('--urg', urg.toFixed(2));
   document.body.classList.toggle('panic', !!(G && G.active && !paused && s <= 30));
@@ -1541,7 +1672,7 @@ async function drainSay() {
 function note(text, cls = '') { say('sys ' + cls, text); G.pending.push(text); }
 function resetMascot() { mascotOv = null; mascotThinking = false; mascotNow = ''; updateMascot(); }
 let chatBlurred = false;   // true after the player pressed Esc in the chat box: don't steal focus back
-function lock(b) { $('msg').disabled = $('send').disabled = $('micBtn').disabled = b; if (!b && view === 'manual' && !chatBlurred) $('msg').focus(); }
+function lock(b) { if (b && mobile()) $('msg').blur(); $('msg').disabled = $('send').disabled = $('micBtn').disabled = b; if (!b && view === 'manual' && !chatBlurred && !mobile()) $('msg').focus(); }   // phones: never pop the keyboard up by itself
 
 /* ---------- actions (what the AI is allowed to do) ---------- */
 function solve(id, text) {
@@ -1665,12 +1796,16 @@ async function turn(snap, evs = [], noAction = false) {
     const { raw, r } = await askGemini();
     showThinking(false);
     G.history.push({ role: 'model', parts: [{ text: raw }] });
+    const revBefore = G.revealed.size;
     say('ai', r.say || '...');
     addReveal(r.reveal);
+    const grew = G.revealed.size > revBefore;     // did the bomb picture learn something new?
     if (!noAction) apply(r.action, snap);
+    mobOnReply(grew);                             // phones: chat stays up, or the stage flips to the bomb
   } catch (e) {
     ok = false;
     mascotThinking = false; updateMascot();
+    if (mobile()) mobFace('chat');
     showThinking(false);
     if (!G.started) { say('sys bad', 'API error: ' + e.message); alert('Could not reach the AI: ' + e.message); }
     else say('retry', 'API error: ' + e.message);
@@ -1708,7 +1843,7 @@ async function autoTurn(prompt) {
 
 
 /* ---------- smooth typing (letters grow in, shrink out) ---------- */
-function autosize() { const t = $('msg'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 150) + 'px'; fitChat(); }
+function autosize() { const t = $('msg'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, mobile() ? 96 : 150) + 'px'; fitChat(); }
 function makeField(ta, g, onSync) {
   const box = ta.parentNode;
   let prev = '', live = [];      // live = one <span> per letter currently in the text
@@ -1763,6 +1898,7 @@ const syncGhost = instant => chatField.sync(instant);
 let chatOpen = false;
 function fitChat(instant) {
   const col = $('rightCol'), pane = $('chatPane'), log = $('log');
+  if (mobile()) { pane.style.height = ''; return; }          // phones: the stage (CSS) decides the size
   const colH = col.clientHeight;
   if (!colH) return;                                   // manual view is hidden
   const cs = getComputedStyle(pane), gap = 12, bombMin = 72;
@@ -1780,11 +1916,11 @@ function fitChat(instant) {
   else pane.style.height = h + 'px';
 }
 function setChatOpen(on, instant) {
-  chatOpen = on;
-  $('chatPane').classList.toggle('open', on);
+  chatOpen = on || mobile();            // on phones the chat is always "open" (it has its own face in the stage)
+  $('chatPane').classList.toggle('open', chatOpen);
   fitChat(instant);
 }
-document.addEventListener('pointerdown', e => { const inChat = !!e.target.closest('#chatPane'); if (inChat) chatBlurred = false; setChatOpen(inChat); });
+document.addEventListener('pointerdown', e => { if (mobile()) return; const inChat = !!e.target.closest('#chatPane'); if (inChat) chatBlurred = false; setChatOpen(inChat); });
 window.addEventListener('resize', () => fitChat(true));
 // keep the log pinned to the newest message while the panel resizes
 let stick = true;
@@ -1861,6 +1997,7 @@ function renderBomb() {
       + (solved ? `<g class="${newly ? 'pop' : ''}"><circle cx="${W - 14}" cy="13" r="8.5" fill="#7fdcae"/>` + txt(W - 14, 17, '✓', 11, '#fff') + '</g>' : '') + '</g></g>';
   }
   $('bombBox').innerHTML = s + '</svg>';
+  mobZoomApply();
   shownRev = new Set(rev);
   shownSolved = new Set(b ? b.order.filter(id => b.solved[id]) : []);
   shownCut = new Set();
@@ -1910,7 +2047,7 @@ function resetGame() {
   $('log').innerHTML = ''; $('notes').value = ''; notesField.sync(true); $('msg').value = ''; syncGhost(true);
   document.querySelectorAll('#cats button').forEach(b => b.classList.remove('done'));
   showThinking(false);
-  toggleNotes(false); setCat('intro'); showView('manual'); setChatOpen(false, true);
+  toggleNotes(false); setCat('intro'); showView('manual'); setChatOpen(false, true); mobReset();
   G = {
     bomb: makeBomb(), active: true, busy: true, started: false, userPaused: false, last: null, auto: null, strikes: 0, pending: [], revealed: new Set(),
     history: [{ role: 'user', parts: [{ text: '[game start] The expert is ready. Introduce yourself.' }] }]
@@ -1936,7 +2073,7 @@ async function send() {
   const text = $('msg').value.trim();
   if (!text) return;
   document.querySelectorAll('#log .retry').forEach(e => e.remove());
-  VOICE.stopMic(); VOICE.stop(); SFX.send(); chatBlurred = false;
+  VOICE.stopMic(); VOICE.stop(); SFX.send(); chatBlurred = false; mob.tok++;
   $('msg').value = ''; syncGhost(true);
   const snap = secsLeft();            // time the player pressed Enter
   G.busy = true; pauseClock(); lock(true);
@@ -2198,7 +2335,7 @@ const VOICE = {
       const r = new SR();
       r.lang = navigator.language || 'en-US'; r.interimResults = true; r.continuous = false;
       r.onresult = e => { let t = ''; for (const res of e.results) t += res[0].transcript; put(t); };
-      r.onend = () => { this.micOff(); if (!ta.disabled && !chatBlurred) ta.focus(); };
+      r.onend = () => { this.micOff(); if (!ta.disabled && !chatBlurred && !mobile()) ta.focus(); };
       r.onerror = e => {
         this.micOff();
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') this.micMsg('Microphone is blocked. Allow mic access for this page and try again.');
@@ -2222,7 +2359,7 @@ const VOICE = {
         try { put(await this.transcribe(new Blob(chunks, { type: mr.mimeType }))); }
         catch (e) { this.micMsg('Could not understand the audio: ' + e.message); }
         $('micBtn').disabled = $('msg').disabled; $('micBtn').title = 'Tap to speak, then tap again to stop';
-        if (!$('msg').disabled && !chatBlurred) $('msg').focus();
+        if (!$('msg').disabled && !chatBlurred && !mobile()) $('msg').focus();
       };
       this.discard = false; this.rec = mr; this.listening = true; $('micBtn').classList.add('on');
       mr.start(); this.recTimer = setTimeout(() => this.stopMic(true), 20000);
@@ -2315,6 +2452,119 @@ document.addEventListener('keydown', e => {
   else if (k === '[' || k === ']') { showView('manual'); const i = PAGES.indexOf(curCat); setCat(PAGES[(i + (k === ']' ? 1 : -1) + PAGES.length) % PAGES.length]); }
   else if (/^[0-9]$/.test(k)) { const p = PAGES[k === '0' ? 9 : +k - 1]; if (p) { showView('manual'); setCat(p); } }
 });
+
+/* =====================================================================
+   MOBILE: one "stage" shared by the chat and the bomb picture
+   - The defuser's message always shows in the chat first.
+   - If it told you something NEW (the bomb picture filled in), the stage flips to the
+     bomb a moment later, so you can go straight to the manual.
+   - If nothing new came out, the chat just stays open.
+   - Tap "Chat" (or just tap the chat / start typing) to talk again.
+   - On the bomb: tap a panel to zoom in, tap again to zoom out.
+   ===================================================================== */
+const sayIdle = () => new Promise(r => { const f = () => (!sayBusy && !sayQ.length) ? r() : setTimeout(f, 120); f(); });
+const mobBombHidden = () => mobile() && mob.face !== 'bomb';   // the bomb is only drawn while you can see it, so new facts pop in when it flips over
+
+function mobFace(face) {
+  mob.face = face;
+  $('rightCol').dataset.face = face;
+  [['stBomb', 'bomb'], ['stChat', 'chat']].forEach(([id, f]) => { $(id).classList.toggle('on', f === face); $(id).setAttribute('aria-selected', f === face); });
+  if (face === 'bomb') { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+  else { mob.zoom = null; mob.zt++; const l = $('log'); requestAnimationFrame(() => { l.scrollTop = l.scrollHeight; }); }
+  mobHint();
+}
+async function mobOnReply(grew) {            // called every time the defuser answers
+  if (!mobile()) return;
+  const my = ++mob.tok;
+  mobFace('chat');                           // always read the new message first
+  if (!grew) return;                         // nothing new on the bomb picture: stay in the chat
+  await sayIdle();                           // wait until the defuser has finished typing
+  await wait(1100);                          // a moment to finish reading
+  const busy = document.activeElement === $('msg') || $('msg').value.trim() || $('notesPanel').classList.contains('open') || !G || !G.active || G.userPaused;
+  if (my === mob.tok && !busy) mobFace('bomb');
+}
+function mobReset() { mob.tok++; mob.zoom = null; mob.zt++; mobFace('chat'); }
+$('stBomb').onclick = () => { mob.tok++; mobFace('bomb'); };
+$('stChat').onclick = () => { mob.tok++; mobFace('chat'); };
+$('chatPane').addEventListener('pointerdown', () => { mob.tok++; });   // touching the chat cancels a pending flip
+
+/* tap-to-zoom on the bomb (the picture is drawn big, so on a phone it needs a magnifier) */
+const MOB_VB = [0, 0, 600, 380];
+function mobFit(r) {                         // grow the rectangle to the shape of the bomb area, keep it inside the bomb
+  const box = $('bombBox'), ar = (box.clientWidth || 332) / (box.clientHeight || 212);
+  let [x, y, w, h] = r; const cx = x + w / 2, cy = y + h / 2;
+  if (w / h < ar) w = h * ar; else h = w / ar;
+  return [Math.min(Math.max(0, cx - w / 2), 600 - w), Math.min(Math.max(0, cy - h / 2), 380 - h), w, h];
+}
+function mobHint() {
+  const h = $('zoomHint');
+  h.textContent = mob.zoom ? 'Tap to zoom out' : 'Tap a panel to zoom in';
+  const show = mob.face === 'bomb' && (!!mob.zoom || !mob.zoomed);
+  h.classList.toggle('show', show);
+  if (show && !mob.zoom) { clearTimeout(mob.ht); mob.ht = setTimeout(() => { mob.zoomed = true; mobHint(); }, 3500); }   // the "tap to zoom" tip fades after a few seconds
+}
+function mobSetZoom(rect) {
+  const svg = $('bombBox').querySelector('svg'); if (!svg) return;
+  const from = (svg.getAttribute('viewBox') || MOB_VB.join(' ')).split(' ').map(Number), to = rect ? mobFit(rect) : MOB_VB;
+  mob.zoom = rect ? to : null; if (rect) mob.zoomed = true; mobHint();
+  const my = ++mob.zt, t0 = performance.now(), D = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 280;
+  (function f(now) {
+    const s = $('bombBox').querySelector('svg'); if (!s || my !== mob.zt) return;
+    const p = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - p, 3);
+    s.setAttribute('viewBox', from.map((v, i) => (v + (to[i] - v) * e).toFixed(2)).join(' '));
+    if (p < 1) requestAnimationFrame(f);
+  })(t0);
+}
+function mobZoomApply() {                    // renderBomb() redraws the picture, so put the zoom back
+  if (!mobile() || !mob.zoom) return;
+  const s = $('bombBox').querySelector('svg'); if (s) s.setAttribute('viewBox', mob.zoom.map(v => v.toFixed(2)).join(' '));
+}
+$('bombBox').addEventListener('click', e => {
+  if (!mobile()) return;
+  const svg = $('bombBox').querySelector('svg'), m = svg && svg.getScreenCTM(); if (!m) return;
+  if (mob.zoom) return mobSetZoom(null);
+  const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+  let r = null;
+  if (pt.y < 45) r = [[8, 6, 202, 38], [212, 6, 184, 38], [400, 6, 192, 38]][pt.x < 211 ? 0 : pt.x < 399 ? 1 : 2];   // serial / batteries / indicator
+  else for (let i = 0; i < 6; i++) {
+    const x = 8 + (i >> 1) * 198, y = 46 + (i & 1) * 168;
+    if (pt.x >= x - 5 && pt.x <= x + 193 && pt.y >= y - 5 && pt.y <= y + 163) { r = [x - 4, y - 4, 196, 166]; break; }
+  }
+  if (r) mobSetZoom(r);
+});
+
+/* notes sheet: Notes | Calculator switch, and the bottom-bar button */
+$('tabNotes').onclick = () => toggleNotes();
+document.querySelectorAll('#nSeg button').forEach(b => b.onclick = () => {
+  $('notesRow').dataset.p = b.dataset.p;
+  document.querySelectorAll('#nSeg button').forEach(x => x.classList.toggle('on', x === b));
+});
+
+/* while typing in the chat, the keyboard needs room: the manual steps aside */
+document.addEventListener('focusin', e => document.body.classList.toggle('typing', mobile() && e.target === $('msg')));
+document.addEventListener('focusout', e => { if (e.target === $('msg')) setTimeout(() => document.body.classList.toggle('typing', mobile() && document.activeElement === $('msg')), 400); });   // small delay: the layout must not jump before a tap on Send/Bomb lands
+['send', 'micBtn'].forEach(id => $(id).addEventListener('mousedown', e => e.preventDefault()));   // tapping Send keeps the focus in the box, so nothing moves under your finger
+
+/* the app always fits the part of the screen you can actually see (browser bars, keyboard) */
+if (window.visualViewport) {
+  const vv = window.visualViewport, root = document.documentElement.style;
+  const fit = () => { if (!mobile()) { root.removeProperty('--appH'); root.removeProperty('--vvTop'); return; } root.setProperty('--appH', vv.height + 'px'); root.setProperty('--vvTop', vv.offsetTop + 'px'); };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); addEventListener('resize', fit); fit();
+}
+
+/* manual: wide tables scroll sideways, swipe left/right to change page */
+document.querySelectorAll('#manBody table').forEach(t => { const w = document.createElement('div'); w.className = 'tw'; t.parentNode.insertBefore(w, t); w.appendChild(t); });
+{
+  let sx = 0, sy = 0, st = 0, skip = false;
+  $('manBody').addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); skip = !!e.target.closest('pre,.tw,svg'); }, { passive: true });
+  $('manBody').addEventListener('touchend', e => {
+    if (!mobile() || skip) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - st > 600) return;
+    const i = PAGES.indexOf(curCat) + (dx < 0 ? 1 : -1);
+    if (i >= 0 && i < PAGES.length) setCat(PAGES[i]);
+  }, { passive: true });
+}
 
 /* ---------- bomb tilt (follows the mouse) ---------- */
 const bc = $('bombCard');
